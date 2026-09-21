@@ -81,15 +81,24 @@ if df.empty:
 
 # ---------------- בחירת שלב ----------------
 LEVELS = [
-    ("🪙  שלב 1 · סקירת השוק", overview),
-    ("🗺  שלב 2 · שכונות", worldmap),
-    ("⚡  שלב 3 · מה מניע מחיר", drivers),
-    ("📊  שלב 4 · אנטומיה וזמן", anatomy),
-    ("👾  שלב 5 · מנבא המחיר", predictor),
+    ("שלב 1 · סקירת השוק", overview),
+    ("שלב 2 · שכונות", worldmap),
+    ("שלב 3 · מה מניע מחיר", drivers),
+    ("שלב 4 · אנטומיה וזמן", anatomy),
+    ("שלב 5 · מנבא המחיר", predictor),
 ]
-choice = st.radio("LEVEL SELECT", [name for name, _ in LEVELS],
-                  horizontal=True, label_visibility="collapsed",
-                  key="level_select")
+# קישור ישיר לשלב: ?level=3
+names = [name for name, _ in LEVELS]
+if "level_select" not in st.session_state:
+    try:
+        idx = int(st.query_params.get("level", 1)) - 1
+    except ValueError:
+        idx = 0
+    st.session_state["level_select"] = names[idx] if 0 <= idx < len(names) else names[0]
+
+choice = st.radio("LEVEL SELECT", names, horizontal=True,
+                  label_visibility="collapsed", key="level_select")
+st.query_params["level"] = str(names.index(choice) + 1)
 st.write("")
 dict(LEVELS)[choice].render(df, full)
 

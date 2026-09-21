@@ -92,13 +92,19 @@ h1, h2, h3 {{ font-family: {HE_FONT}; font-weight: 900; color: {TEXT};
   padding: 14px 16px; height: 100%;
 }}
 .hud-label {{
-  font-family: {FONTS}; font-size: 9px; color: {MUTED};
-  letter-spacing: 1.5px; display: block; margin-bottom: 6px; direction: ltr; text-align: right;
+  font-family: {FONTS}; font-size: 8px; color: {MUTED};
+  letter-spacing: 1px; display: block; margin-bottom: 8px;
+  direction: ltr; text-align: right; white-space: nowrap; overflow: hidden;
 }}
 .hud-value {{
-  font-family: 'VT323', monospace; font-size: 42px; line-height: .95;
-  color: var(--bc, {CYAN}); text-shadow: 0 0 14px var(--bc, {CYAN}); direction: ltr; text-align: right;
+  font-family: 'VT323', monospace; font-size: 40px; line-height: 1.05;
+  color: var(--bc, {CYAN}); text-shadow: 0 0 14px var(--bc, {CYAN});
+  direction: ltr; text-align: right;
+  white-space: nowrap; overflow: hidden; text-overflow: clip;
 }}
+/* מספר ארוך מקבל גודל קטן יותר במקום להישבר לשתי שורות */
+.hud-value.long {{ font-size: 28px; letter-spacing: -.5px; }}
+.hud-value.xlong {{ font-size: 22px; letter-spacing: -.5px; }}
 .hud-sub {{ font-size: 12px; color: {MUTED}; margin-top: 6px; font-weight: 700; }}
 
 /* ---------- כרטיס תובנה ---------- */
@@ -169,32 +175,34 @@ h1, h2, h3 {{ font-family: {HE_FONT}; font-weight: 900; color: {TEXT};
 [data-testid="stTabs"] [role="tab"] p {{ font-size: 14px !important; font-weight: 700; }}
 
 /* ---------- בוחר השלבים (LEVEL SELECT) ---------- */
-[data-testid="stMainBlockContainer"] [role="radiogroup"] {
+/* ממוקד לפי מפתח הווידג'ט בלבד, כדי לא לתפוס רדיו אחרים באפליקציה */
+.st-key-level_select [data-testid="stRadioGroup"] {{
   gap: 8px; flex-wrap: wrap; margin-bottom: 4px;
-}
-[data-testid="stMainBlockContainer"] [role="radiogroup"] > label {
-  background: #141433; border: 3px solid #2A2A55;
+}}
+.st-key-level_select [data-testid="stRadioOption"] {{
+  background: {BG_CARD}; border: 3px solid {GRID};
   box-shadow: 4px 4px 0 rgba(0,0,0,.6);
   padding: 12px 18px; margin: 0; cursor: pointer;
   transition: transform .06s linear, border-color .1s linear;
-}
-[data-testid="stMainBlockContainer"] [role="radiogroup"] > label:hover {
-  border-color: #9B5CFF; transform: translate(-1px, -1px);
-}
-[data-testid="stMainBlockContainer"] [role="radiogroup"] > label > div:first-child {
-  display: none;   /* מסתיר את העיגול, נשארת "מחסנית" */
-}
-[data-testid="stMainBlockContainer"] [role="radiogroup"] > label p {
-  font-size: 15px !important; font-weight: 700; color: #8C8CB8; margin: 0;
-}
-[data-testid="stMainBlockContainer"] [role="radiogroup"] > label:has(input:checked) {
-  border-color: #00F0FF;
+}}
+.st-key-level_select [data-testid="stRadioOption"]:hover {{
+  border-color: {PURPLE}; transform: translate(-1px, -1px);
+}}
+/* עיגול הרדיו עצמו — מוסתר, נשארת "מחסנית" */
+.st-key-level_select [data-testid="stRadioOption"] > span:first-child {{
+  display: none !important;
+}}
+.st-key-level_select [data-testid="stRadioOption"] p {{
+  font-size: 15px !important; font-weight: 700; color: {MUTED}; margin: 0;
+}}
+.st-key-level_select [data-testid="stRadioOption"]:has(input:checked) {{
+  border-color: {CYAN};
   background: linear-gradient(180deg, rgba(0,240,255,.20), rgba(0,240,255,.04));
   box-shadow: 4px 4px 0 rgba(0,0,0,.6), 0 0 22px rgba(0,240,255,.3);
-}
-[data-testid="stMainBlockContainer"] [role="radiogroup"] > label:has(input:checked) p {
-  color: #00F0FF; font-weight: 900;
-}
+}}
+.st-key-level_select [data-testid="stRadioOption"]:has(input:checked) p {{
+  color: {CYAN}; font-weight: 900;
+}}
 
 /* ---------- סיידבר ---------- */
 [data-testid="stSidebar"] {{

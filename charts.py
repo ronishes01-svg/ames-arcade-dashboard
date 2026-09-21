@@ -9,18 +9,23 @@ HE_FONT = "Heebo, Arial Hebrew, sans-serif"
 
 
 def style(fig: go.Figure, title: str = "", height: int = 420,
-          legend: bool = False) -> go.Figure:
-    """מחיל את ערכת הארקייד ואת יישור ה-RTL על תרשים."""
+          legend: bool = False, right_axis: bool = False) -> go.Figure:
+    """מחיל את ערכת הארקייד ואת יישור ה-RTL על תרשים.
+
+    right_axis=True כשציר הקטגוריות הועבר לימין (RTL) — אז צריך שוליים
+    ימניים רחבים, אחרת תוויות הקטגוריות נחתכות לגמרי.
+    """
     fig.update_layout(
-        title=dict(text=f"<b>{title}</b>", x=1.0, xanchor="right", y=0.97,
+        title=dict(text=f"<b>{title}</b>", x=0.99, xanchor="right", y=0.97,
                    font=dict(family=HE_FONT, size=17, color=T.TEXT)),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(11,11,30,.55)",
         font=dict(family=HE_FONT, size=13, color=T.TEXT),
         height=height,
-        margin=dict(l=20, r=20, t=60 if title else 24, b=40),
+        margin=dict(l=20, r=180 if right_axis else 20,
+                    t=60 if title else 24, b=90 if legend else 40),
         showlegend=legend,
-        legend=dict(x=1, xanchor="right", y=1.02, yanchor="bottom",
+        legend=dict(x=1, xanchor="right", y=-0.16, yanchor="top",
                     orientation="h", bgcolor="rgba(20,20,51,.85)",
                     bordercolor=T.GRID, borderwidth=2,
                     font=dict(family=HE_FONT, size=12)),
@@ -30,9 +35,10 @@ def style(fig: go.Figure, title: str = "", height: int = 420,
         bargap=0.22,
     )
     grid = dict(gridcolor=T.GRID, gridwidth=1, zerolinecolor=T.GRID,
-                linecolor=T.GRID, linewidth=2,
+                linecolor=T.GRID, linewidth=2, automargin=True,
                 tickfont=dict(family=HE_FONT, size=12, color=T.MUTED),
-                title_font=dict(family=HE_FONT, size=13, color=T.MUTED))
+                title=dict(font=dict(family=HE_FONT, size=13, color=T.MUTED),
+                           standoff=26))
     fig.update_xaxes(**grid)
     fig.update_yaxes(**grid)
     return fig
@@ -50,23 +56,30 @@ def price_histogram(s: pd.Series) -> go.Figure:
         opacity=.9, name="בתים",
         hovertemplate="טווח מחיר: %{x}<br>בתים: %{y}<extra></extra>"))
     med, mean = s.median(), s.mean()
-    for val, col, label in [(med, T.YELLOW, "חציון"), (mean, T.MAGENTA, "ממוצע")]:
-        fig.add_vline(x=val, line=dict(color=col, width=3, dash="dash"),
-                      annotation_text=f"{label} {money(val)}",
-                      annotation_position="top",
-                      annotation_font=dict(family=HE_FONT, color=col, size=13))
+    # שתי ההערות בגבהים שונים — אחרת הן נדרסות זו על זו כשהערכים קרובים
+    for val, col, label, ay in [(med, T.YELLOW, "חציון", -6),
+                                (mean, T.MAGENTA, "ממוצע", -28)]:
+        fig.add_vline(x=val, line=dict(color=col, width=3, dash="dash"))
+        fig.add_annotation(x=val, y=1, yref="paper", yanchor="bottom", ay=ay, ax=0,
+                           text=f"<b>{label} {money(val)}</b>", showarrow=False,
+                           font=dict(family=HE_FONT, color=col, size=13))
     fig.update_xaxes(title="מחיר מכירה ($)", tickprefix="$", tickformat=",.0f")
     fig.update_yaxes(title="מספר בתים")
     return style(fig, "כמה עולה בית? התפלגות המחירים", 430)
 
 
 def donut(counts: pd.Series, title: str, hole: float = .55) -> go.Figure:
+    # פרוסות קטנות לא מקבלות תווית — אחרת האחוזים נדרסים זה על זה
+    total = counts.sum()
+    labels_shown = ["" if v / total < 0.04 else f"{v / total * 100:.1f}%"
+                    for v in counts]
     fig = go.Figure(go.Pie(
         labels=counts.index, values=counts.to_numpy(), hole=hole,
         marker=dict(colors=T.SERIES[:len(counts)],
                     line=dict(color=T.BG, width=3)),
-        textinfo="percent", textposition="inside",
-        insidetextfont=dict(family=HE_FONT, size=14, color=T.BG),
+        text=labels_shown, texttemplate="%{text}", textposition="inside",
+        insidetextfont=dict(family=HE_FONT, size=14, color="#FFFFFF"),
+        textfont=dict(family=HE_FONT, size=12),
         sort=False, direction="clockwise",
         hovertemplate="%{label}<br>%{value} בתים · %{percent}<extra></extra>"))
     fig.update_layout(annotations=[dict(
@@ -89,7 +102,7 @@ def missing_bars(mdf: pd.DataFrame, top: int = 12) -> go.Figure:
         hovertemplate="%{y}<br>%{x}% מהשורות<br>%{customdata}<extra></extra>"))
     fig.update_xaxes(title="אחוז השורות ללא ערך", range=[0, 112])
     fig.update_yaxes(side="right")
-    return style(fig, "איפה חסרים נתונים — וממה זה נובע", 450)
+    return style(fig, "איפה חסרים נתונים — וממה זה נובע", 450, right_axis=True)
 
 
 # ---------------- LEVEL 2 ----------------
@@ -97,11 +110,7 @@ def neighborhood_bars(agg: pd.DataFrame) -> go.Figure:
     d = agg.sort_values("median").copy()
     fig = go.Figure(go.Bar(
         x=d["median"], y=d.index, orientation="h",
-        marker=dict(color=d["median"], colorscale=T.SCALE,
-                    line=dict(color=T.BG, width=2),
-                    colorbar=dict(title=dict(text="חציון", font=dict(family=HE_FONT, color=T.MUTED)),
-                                  tickfont=dict(family=HE_FONT, color=T.MUTED),
-                                  outlinecolor=T.GRID, thickness=14)),
+        marker=dict(color=T.S_CYAN, line=dict(color=T.BG, width=2)),
         text=[money(v) for v in d["median"]], textposition="outside",
         textfont=dict(family="VT323, monospace", size=16, color=T.TEXT),
         customdata=d["count"],
@@ -109,7 +118,7 @@ def neighborhood_bars(agg: pd.DataFrame) -> go.Figure:
     fig.update_xaxes(title="מחיר חציוני ($)", tickprefix="$", tickformat=",.0f",
                      range=[0, d["median"].max() * 1.22])
     fig.update_yaxes(side="right", tickfont=dict(size=11))
-    return style(fig, "טבלת האלופים — שכונות לפי מחיר חציוני", 700)
+    return style(fig, "טבלת האלופים — שכונות לפי מחיר חציוני", 700, right_axis=True)
 
 
 def neighborhood_box(df: pd.DataFrame, order) -> go.Figure:
@@ -152,7 +161,7 @@ def correlation_bars(corr: pd.Series, labels) -> go.Figure:
     fig.update_xaxes(title="עוצמת הקשר למחיר (קורלציית פירסון)", range=[-.45, 1.05],
                      zeroline=True, zerolinewidth=3, zerolinecolor=T.TEXT)
     fig.update_yaxes(side="right")
-    return style(fig, "הפאוור-אפים — מה באמת קשור למחיר", 640)
+    return style(fig, "הפאוור-אפים — מה באמת קשור למחיר", 640, right_axis=True)
 
 
 def area_scatter(df: pd.DataFrame, outliers: pd.DataFrame) -> go.Figure:
@@ -191,11 +200,14 @@ def corr_heatmap(m: pd.DataFrame, labels) -> go.Figure:
         xgap=3, ygap=3,
         text=m.round(2).to_numpy(), texttemplate="%{text}",
         textfont=dict(family="VT323, monospace", size=15),
-        colorbar=dict(tickfont=dict(family=HE_FONT, color=T.MUTED), thickness=14),
+        colorbar=dict(tickfont=dict(family=HE_FONT, color=T.MUTED), thickness=14,
+                      x=-0.06, xanchor="right"),
         hovertemplate="%{y} ↔ %{x}<br>קורלציה: %{z:.2f}<extra></extra>"))
     fig.update_xaxes(tickangle=-40, tickfont=dict(size=11))
     fig.update_yaxes(side="right", tickfont=dict(size=11))
-    return style(fig, "מפת חום — מי קשור למי", 560)
+    fig = style(fig, "מפת חום — מי קשור למי", 560, right_axis=True)
+    fig.update_layout(margin=dict(l=75, r=150, t=60, b=40))
+    return fig
 
 
 def uplift_bars(rows) -> go.Figure:
@@ -216,7 +228,8 @@ def uplift_bars(rows) -> go.Figure:
     fig.update_layout(barmode="group")
     fig.update_xaxes(title="מחיר חציוני ($)", tickprefix="$", tickformat=",.0f")
     fig.update_yaxes(side="right")
-    return style(fig, "כמה שווה כל פאוור-אפ — מחיר חציוני עם ובלי", 460, legend=True)
+    return style(fig, "כמה שווה כל פאוור-אפ — מחיר חציוני עם ובלי", 460,
+                 legend=True, right_axis=True)
 
 
 # ---------------- LEVEL 4 ----------------
@@ -315,7 +328,7 @@ def contribution_bars(rows) -> go.Figure:
                      zeroline=True, zerolinewidth=3, zerolinecolor=T.TEXT,
                      tickprefix="$", tickformat=",.0f")
     fig.update_yaxes(side="right")
-    return style(fig, "מה הזיז את התחזית שלך", 420)
+    return style(fig, "מה הזיז את התחזית שלך", 420, right_axis=True)
 
 
 def guess_gauge(guess: float, actual: float) -> go.Figure:
